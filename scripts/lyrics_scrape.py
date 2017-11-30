@@ -1,6 +1,6 @@
 import re, sys, csv, time, random
 from fake_useragent import UserAgent
-import urllib.request
+import urllib.request, os.path
 from bs4 import BeautifulSoup
  
 #ua = UserAgent()
@@ -35,25 +35,26 @@ def get_lyrics(artist,song_title):
 		lyrics = lyrics.split(down_partition)[0]
 		lyrics = lyrics.replace('<br>','').replace('</br>','').replace('<br/>','').replace('</div>','').replace('<i>','').replace('</i>','').strip()
 		lyrics = re.sub(r'\[.*\]',"",lyrics)
-		file = open("./lyrics_depo/"+artist+"_"+song_title+".txt","w+")
+		file = open("../lyrics_depo/"+artist+"_"+song_title+".txt","w+")
 		file.write(lyrics)
 		file.close()
 		return artist + " - " + song_title + " was added to lyrics depo."
 	except Exception as e:
 		return "Exception occurred \n" +str(e)
 
-def extract_top_40_lyrics():
-	with open('./taylorswiftsongs.csv') as csvfile:
+def extract_lyrics(song_list_path):
+	with open(song_list_path) as csvfile:
 		reader = csv.DictReader(csvfile)
 		for row in reader:
 			time.sleep(random.randint(10,25))
 			try:
-				print(get_lyrics(row['artist_name'],row['song_title']))
+				if os.path.exists('./'+row['artist_name']+'_'+row['song_title']) == False:
+					print(get_lyrics(row['artist_name'],row['song_title']))
 			except Exception as e:
 				pass
 
 def main(argv):
-	extract_top_40_lyrics()
+	extract_lyrics('../new_love_songs.csv')
 
 if __name__ == "__main__":
 	main(sys.argv[1:])

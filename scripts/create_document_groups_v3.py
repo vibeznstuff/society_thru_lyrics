@@ -19,7 +19,7 @@ def process_lyrics(str):
 
 def load_doc_group(category):
 	fails=0
-	with open('../output/top_' + category + '_songs.csv') as csvfile:
+	with open('../new_' + category + '_songs.csv') as csvfile:
 		reader = csv.DictReader(csvfile)
 		for row in reader:
 			artist = re.sub('[^A-Za-z0-9]+', "", row['artist_name']).lower()
