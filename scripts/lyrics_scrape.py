@@ -46,15 +46,20 @@ def extract_lyrics(song_list_path):
 	with open(song_list_path) as csvfile:
 		reader = csv.DictReader(csvfile)
 		for row in reader:
-			time.sleep(random.randint(10,25))
 			try:
-				if os.path.exists('./'+row['artist_name']+'_'+row['song_title']) == False:
+				artist = row['artist_name'].lower()
+				song_title = row['song_title'].lower()
+				# remove all except alphanumeric characters from artist and song_title
+				artist = re.sub('[^A-Za-z0-9]+', "", artist)
+				song_title = re.sub('[^A-Za-z0-9]+', "", song_title)
+				if os.path.exists('../lyrics_depo/'+artist+'_'+song_title+'.txt') == False:
+					time.sleep(random.randint(10,25))
 					print(get_lyrics(row['artist_name'],row['song_title']))
 			except Exception as e:
 				pass
 
 def main(argv):
-	extract_lyrics('../new_love_songs.csv')
+	extract_lyrics('../category_training/new_love_songs.csv')
 
 if __name__ == "__main__":
 	main(sys.argv[1:])
