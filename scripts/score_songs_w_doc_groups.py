@@ -18,7 +18,7 @@ def get_love_score(lyric_contents,scores):
 		total_score=0.0
 		for row in reader:
 			hit_flag = min(max(lyric_contents.find(row['term']),0),1)
-			hit_score = hit_flag * float(row['score'])
+			hit_score = hit_flag * (float(row['score'])-1)
 			#hits = re.findall(" " + row['reg_exp'].lower(),lyric_contents)
 			#num_hits = len(hits)
 			#if num_hits > 0:
@@ -26,16 +26,47 @@ def get_love_score(lyric_contents,scores):
 				#print(row['reg_exp'])
 				#print(hits)
 			total_score+=hit_score
-		else:
-			scores['love']=str(math.ceil(total_score))
+		scores['love']=str(math.ceil(total_score))
+		
+def get_political_score(lyric_contents,scores):
+	with open("../output/political_term_weights.csv") as csvfile:
+		reader = csv.DictReader(csvfile)
+		total_score=0.0
+		for row in reader:
+			hit_flag = min(max(lyric_contents.find(row['term']),0),1)
+			hit_score = hit_flag * (float(row['score'])-1)
+			#hits = re.findall(" " + row['reg_exp'].lower(),lyric_contents)
+			#num_hits = len(hits)
+			#if num_hits > 0:
+				#print("Category :" + category)
+				#print(row['reg_exp'])
+				#print(hits)
+			total_score+=hit_score
+		scores['political']=str(math.ceil(total_score))
+		
+def get_sad_score(lyric_contents,scores):
+	with open("../output/sad_term_weights.csv") as csvfile:
+		reader = csv.DictReader(csvfile)
+		total_score=0.0
+		for row in reader:
+			hit_flag = min(max(lyric_contents.find(row['term']),0),1)
+			hit_score = hit_flag * (float(row['score'])-1)
+			#hits = re.findall(" " + row['reg_exp'].lower(),lyric_contents)
+			#num_hits = len(hits)
+			#if num_hits > 0:
+				#print("Category :" + category)
+				#print(row['reg_exp'])
+				#print(hits)
+			total_score+=hit_score
+		scores['sad']=str(math.ceil(total_score))
 
 def process_song(artist,song):
 	scores = {}
 	lyric_contents = load_lyrics(artist,song)
 	get_love_score(lyric_contents,scores)
 	#get_category_score("romance",lyric_contents,scores)
-	#get_category_score("dark",lyric_contents,scores)
-	#get_category_score("political",lyric_contents,scores)
+	get_sad_score(lyric_contents,scores)
+	get_political_score(lyric_contents,scores)
 	#get_category_score("sexuality",lyric_contents,scores)
 	#get_category_score("vulgar",lyric_contents,scores)
 	#get_category_score("drugs",lyric_contents,scores)
@@ -44,7 +75,7 @@ def process_song(artist,song):
 
 f = open("../output/scored_songs_v2.csv","w+")
 #f.write("year,month,rank,artist,song,romance_score,dark_score,political_score,sexuality_score,vulgar_score,drugs_score,violence_score\n")
-f.write("year,month,rank,artist,song,romance_score\n")
+f.write("year,month,rank,artist,song,romance_score,political_score,sad_score\n")
 
 with open("../output/historic_top_40_songs_1960_2017.csv") as csvfile:
 		reader = csv.DictReader(csvfile)
@@ -63,7 +94,7 @@ with open("../output/historic_top_40_songs_1960_2017.csv") as csvfile:
 				#print("Artist: " + artist + ", Song: " + song)
 				scores=process_song(artist,song)
 				#print(scores)
-				f.write(year+","+month+","+rank+","+artist+","+song+","+scores['love']+"\n")
+				f.write(year+","+month+","+rank+","+artist+","+song+","+scores['love']+","+scores['political']+","+scores['sad']+"\n")
 			except FileNotFoundError as e:
 				pass
 			except UnicodeDecodeError as u:

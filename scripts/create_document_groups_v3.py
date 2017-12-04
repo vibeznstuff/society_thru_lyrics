@@ -19,7 +19,7 @@ def process_lyrics(str):
 
 def load_doc_group(category):
 	fails=0
-	with open('../category_training/new_' + category + '_songs.csv') as csvfile:
+	with open('../category_training/' + category + '_songs.csv') as csvfile:
 		reader = csv.DictReader(csvfile)
 		for row in reader:
 			artist = re.sub('[^A-Za-z0-9]+', "", row['artist_name']).lower()
@@ -64,6 +64,8 @@ def load_base_doc_group():
 	print("Could not find " + str(fails) + " songs in lyrics_depo for category 'baseline'.")
 		
 load_doc_group('love')
+load_doc_group('political')
+load_doc_group('sad')
 load_base_doc_group()
 
 class Counter(dict):
@@ -71,9 +73,13 @@ class Counter(dict):
 		return 0
 		
 love_term_freqs = Counter()
+political_term_freqs = Counter()
+sad_term_freqs = Counter()
 base_term_freqs = Counter()
 base_song_count = 0
+political_song_count = 0
 love_song_count = 0
+sad_song_count = 0
 
 for song in base_songs:
 	for term in base_songs[song]:
@@ -81,26 +87,78 @@ for song in base_songs:
 	base_song_count+=1
 		
 for song in cat_songs:
-	for term in cat_songs[song][0]:
-		love_term_freqs[term] = 1 + love_term_freqs[term]
-	love_song_count+=1
+	if cat_songs[song][1] == 'love':
+		for term in cat_songs[song][0]:
+			love_term_freqs[term] = 1 + love_term_freqs[term]
+		love_song_count+=1
+	
+for song in cat_songs:
+	if cat_songs[song][1] == 'political':
+		for term in cat_songs[song][0]:
+			political_term_freqs[term] = 1 + political_term_freqs[term]
+		political_song_count+=1
+
+for song in cat_songs:
+	if cat_songs[song][1] == 'sad':
+		for term in cat_songs[song][0]:
+			sad_term_freqs[term] = 1 + sad_term_freqs[term]
+		sad_song_count+=1
 
 top_love_terms = []
+top_political_terms = []
+top_sad_terms = []
 
 for term in love_term_freqs:
 	love_freq = love_term_freqs[term]
 	norm_love_freq = float(love_term_freqs[term]/love_song_count)
 	norm_base_freq = float(base_term_freqs[term]/base_song_count)
 	if norm_base_freq > 0:
-		love_ratio = norm_love_freq/norm_base_freq
-		if love_freq > 7 and love_ratio > 2:
+		love_ratio = (norm_love_freq/norm_base_freq)
+		if love_freq > love_song_count*0.05 and love_ratio > 2:
 			top_love_terms.append((love_ratio,term))
 			
+for term in political_term_freqs:
+	political_freq = political_term_freqs[term]
+	norm_political_freq = float(political_term_freqs[term]/political_song_count)
+	norm_base_freq = float(base_term_freqs[term]/base_song_count)
+	if norm_base_freq > 0:
+		political_ratio = (norm_political_freq/norm_base_freq)
+		if political_freq > political_song_count*0.05 and political_ratio > 2:
+			top_political_terms.append((political_ratio,term))
+			
+for term in sad_term_freqs:
+	sad_freq = sad_term_freqs[term]
+	norm_sad_freq = float(sad_term_freqs[term]/sad_song_count)
+	norm_base_freq = float(base_term_freqs[term]/base_song_count)
+	if norm_base_freq > 0:
+		sad_ratio = (norm_sad_freq/norm_base_freq)
+		if sad_freq > sad_song_count*0.05 and sad_ratio > 2:
+			top_sad_terms.append((sad_ratio,term))
+			
 top_love_terms.sort(reverse=True)
+top_political_terms.sort(reverse=True)
+top_sad_terms.sort(reverse=True)
+print("Total Love Songs: " + str(love_song_count))
+print("Total Political Songs: " + str(political_song_count))
+print("Total Sad Songs: " + str(sad_song_count))
+print("Total Base Songs: " + str(base_song_count))
 
 f = open('../output/love_term_weights.csv','w+')
 f.write("term,score\n")
 for term in top_love_terms:
+	f.write(term[1] + "," + str(term[0])+"\n")
+f.close()
+
+
+f = open('../output/political_term_weights.csv','w+')
+f.write("term,score\n")
+for term in top_political_terms:
+	f.write(term[1] + "," + str(term[0])+"\n")
+f.close()
+
+f = open('../output/sad_term_weights.csv','w+')
+f.write("term,score\n")
+for term in top_sad_terms:
 	f.write(term[1] + "," + str(term[0])+"\n")
 f.close()
 

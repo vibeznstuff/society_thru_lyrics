@@ -59,7 +59,7 @@ def extract_lyrics(song_list_path):
 				pass
 
 def main(argv):
-	extract_lyrics('../category_training/new_love_songs.csv')
+	extract_lyrics('../category_training/political_songs.csv')
 
 if __name__ == "__main__":
 	main(sys.argv[1:])
