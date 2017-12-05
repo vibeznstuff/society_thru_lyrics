@@ -6,17 +6,20 @@ from random import randint
 import unidecode
 
 stop_words = list(set(stopwords.words("english")))
-more_words = [",","..","'s","'ll","'re","n't","(",")","."]
-stop_words = stop_words + more_words
-doc_group = {}
+stop_words = stop_words.append([",","..","'s","'ll","'re","n't","(",")","."])
+cat_songs = {}
+base_songs = {}
+
+def process_lyrics(str):
+	unwanted_chars = ['\"','\'',',',';',':','-','~','?','!','.','(',')','[',']','{','}','/']
+	str = unidecode.unidecode(str.lower())
+	for char in unwanted_chars:
+		str = str.replace(char,'')
+	return list(set(str.split()))
 
 def load_doc_group(category):
-	doc_group[category] = {}
-	doc_group[category]['num_docs'] = 0
-	lyric_acc= ""
 	fails=0
-	
-	with open('../output/top_' + category + '_songs.csv') as csvfile:
+	with open('../category_training/' + category + '_songs.csv') as csvfile:
 		reader = csv.DictReader(csvfile)
 		for row in reader:
 			artist = re.sub('[^A-Za-z0-9]+', "", row['artist_name']).lower()
@@ -26,23 +29,18 @@ def load_doc_group(category):
 			lyric_file = artist + "_" + song
 			try:
 				f = open('../lyrics_depo/' + lyric_file + '.txt','r')
-				lyric_acc= lyric_acc + '\n\n' + unidecode.unidecode(f.read().lower())
+				term_set= process_lyrics(f.read())
 				f.close()
-				doc_group[category]['num_docs'] += 1
+				cat_songs[lyric_file] = (list(term_set),category)
 			except Exception as e:
 				if e.errno != 2:
 					print("Exception occured: " + str(e))
 				fails += 1
 	
-	doc_group[category]['frequencies'] = Counter([x for x in word_tokenize(lyric_acc) if x not in stop_words])
 	print("Could not find " + str(fails) + " songs in lyrics_depo for category '" + category + "'.")
 
-def load_baseline_doc_group():
-	doc_group['baseline'] = {}
-	doc_group['baseline']['num_docs'] = 0
-	lyric_acc= ""
+def load_base_doc_group():
 	fails=0
-	
 	with open('../output/distinct_top_40_songs.csv') as csvfile:
 		reader = csv.DictReader(csvfile)
 		for row in reader:
@@ -56,36 +54,116 @@ def load_baseline_doc_group():
 				lyric_file = artist + "_" + song
 				try:
 					f = open('../lyrics_depo/' + lyric_file + '.txt','r')
-					lyric_acc= lyric_acc + '\n\n' + unidecode.unidecode(f.read().lower())
+					term_set= process_lyrics(f.read())
 					f.close()
-					doc_group['baseline']['num_docs'] += 1
+					base_songs[lyric_file] = list(term_set)
 				except Exception as e:
 					#if e.errno != 2:
 					#print("Exception occured: " + str(e))
 					fails += 1
-	doc_group['baseline']['frequencies'] = Counter([x for x in word_tokenize(lyric_acc) if x not in stop_words])
 	print("Could not find " + str(fails) + " songs in lyrics_depo for category 'baseline'.")
 		
 load_doc_group('love')
-load_baseline_doc_group()
+load_doc_group('political')
+load_doc_group('sad')
+load_base_doc_group()
 
-f = open('../output/frequency_scores.csv','w+')
-f.write("term,love_freq,base_freq,love_num_docs,base_num_docs\n")
+class Counter(dict):
+	def __missing__(self,key):
+		return 0
+		
+love_term_freqs = Counter()
+political_term_freqs = Counter()
+sad_term_freqs = Counter()
+base_term_freqs = Counter()
+base_song_count = 0
+political_song_count = 0
+love_song_count = 0
+sad_song_count = 0
 
-for term in doc_group['love']['frequencies']:
-	try:
-		love_freq = str(doc_group['love']['frequencies'][term])
-		base_freq = str(doc_group['baseline']['frequencies'][term])
-		love_num_docs = str(doc_group['love']['num_docs'])
-		base_num_docs = str(doc_group['baseline']['num_docs'])
-		f.write(term + "," + love_freq + "," + base_freq + "," + love_num_docs + "," + base_num_docs + "\n")
-	except Exception as e:
-		pass
+for song in base_songs:
+	for term in base_songs[song]:
+		base_term_freqs[term] = 1 + base_term_freqs[term]
+	base_song_count+=1
+		
+for song in cat_songs:
+	if cat_songs[song][1] == 'love':
+		for term in cat_songs[song][0]:
+			love_term_freqs[term] = 1 + love_term_freqs[term]
+		love_song_count+=1
+	
+for song in cat_songs:
+	if cat_songs[song][1] == 'political':
+		for term in cat_songs[song][0]:
+			political_term_freqs[term] = 1 + political_term_freqs[term]
+		political_song_count+=1
 
+for song in cat_songs:
+	if cat_songs[song][1] == 'sad':
+		for term in cat_songs[song][0]:
+			sad_term_freqs[term] = 1 + sad_term_freqs[term]
+		sad_song_count+=1
+
+top_love_terms = []
+top_political_terms = []
+top_sad_terms = []
+
+for term in love_term_freqs:
+	love_freq = love_term_freqs[term]
+	norm_love_freq = float(love_term_freqs[term]/love_song_count)
+	norm_base_freq = float(base_term_freqs[term]/base_song_count)
+	if norm_base_freq > 0:
+		love_ratio = (norm_love_freq/norm_base_freq)
+		if love_freq > love_song_count*0.05 and love_ratio > 2:
+			top_love_terms.append((love_ratio,term))
+			
+for term in political_term_freqs:
+	political_freq = political_term_freqs[term]
+	norm_political_freq = float(political_term_freqs[term]/political_song_count)
+	norm_base_freq = float(base_term_freqs[term]/base_song_count)
+	if norm_base_freq > 0:
+		political_ratio = (norm_political_freq/norm_base_freq)
+		if political_freq > political_song_count*0.05 and political_ratio > 2:
+			top_political_terms.append((political_ratio,term))
+			
+for term in sad_term_freqs:
+	sad_freq = sad_term_freqs[term]
+	norm_sad_freq = float(sad_term_freqs[term]/sad_song_count)
+	norm_base_freq = float(base_term_freqs[term]/base_song_count)
+	if norm_base_freq > 0:
+		sad_ratio = (norm_sad_freq/norm_base_freq)
+		if sad_freq > sad_song_count*0.05 and sad_ratio > 2:
+			top_sad_terms.append((sad_ratio,term))
+			
+top_love_terms.sort(reverse=True)
+top_political_terms.sort(reverse=True)
+top_sad_terms.sort(reverse=True)
+print("Total Love Songs: " + str(love_song_count))
+print("Total Political Songs: " + str(political_song_count))
+print("Total Sad Songs: " + str(sad_song_count))
+print("Total Base Songs: " + str(base_song_count))
+
+f = open('../output/love_term_weights.csv','w+')
+f.write("term,score\n")
+for term in top_love_terms:
+	f.write(term[1] + "," + str(term[0])+"\n")
 f.close()
 
-#with open('./document_groups.json', 'w+') as jf:
-    #json.dump(doc_group, jf)
+
+f = open('../output/political_term_weights.csv','w+')
+f.write("term,score\n")
+for term in top_political_terms:
+	f.write(term[1] + "," + str(term[0])+"\n")
+f.close()
+
+f = open('../output/sad_term_weights.csv','w+')
+f.write("term,score\n")
+for term in top_sad_terms:
+	f.write(term[1] + "," + str(term[0])+"\n")
+f.close()
+
+#with open('../output/document_groups.json', 'w+') as jf:
+    #json.dump(songs, jf)
 			
 	
 	
