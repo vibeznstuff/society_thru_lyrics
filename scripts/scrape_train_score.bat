@@ -1,0 +1,4 @@
+python lyrics_scrape.py
+python create_document_groups.py
+python score_songs_w_doc_groups.py
+pause
