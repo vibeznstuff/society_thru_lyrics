@@ -191,7 +191,7 @@ f.close()
 
 f = open('../output/sexual_term_weights.csv','w+')
 f.write("term,score\n")
-for term in top_sad_terms:
+for term in top_sexual_terms:
 	f.write(term[1] + "," + str(term[0])+"\n")
 f.close()
 
