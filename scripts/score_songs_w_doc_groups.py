@@ -110,7 +110,7 @@ with open("../output/historic_top_40_songs_1960_2017.csv") as csvfile:
 				#print("Artist: " + artist + ", Song: " + song)
 				scores=process_song(artist,song)
 				#print(scores)
-				f.write(year+","+month+","+rank+","+artist+","+song+","+scores['love']+","+scores['political']+","+scores['sad']+"\n")
+				f.write(year+","+month+","+rank+","+artist+","+song+","+scores['love']+","+scores['political']+","+scores['sad']+","+scores['sexual']+"\n")
 			except FileNotFoundError as e:
 				pass
 			except UnicodeDecodeError as u:
